@@ -2,7 +2,7 @@ use std::io::{BufReader, Read};
 use std::fs::File;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ChunkLocation {
 	Start,
 	End,
@@ -10,7 +10,7 @@ pub enum ChunkLocation {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chunk {
 	pub length: u32,
 	pub ch_type: [u8; 4],

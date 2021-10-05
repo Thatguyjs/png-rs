@@ -1,6 +1,4 @@
-#[path="../src/lib.rs"]
-mod png;
-use png::decoder::*;
+use png_rs::decoder::*;
 
 
 fn main() -> Result<(), DecoderError> {
@@ -8,7 +6,9 @@ fn main() -> Result<(), DecoderError> {
 
 	for chunk in decoder.chunks() {
 		match &chunk {
-			Ok(c) => { println!("Got chunk: {:?}", c); },
+			Ok(c) => {
+				println!("Got chunk: {:?}", c);
+			},
 			Err(e) => { println!("Got error: {}", e); }
 		}
 	}

@@ -1,6 +1,4 @@
-#[path="./chunk.rs"]
-mod chunk;
-use chunk::{Chunk, Chunks, ChunkError};
+use crate::chunk::{Chunk, Chunks, ChunkError};
 
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -19,9 +17,9 @@ impl<'a> ImageDecoder<'a> {
 			Ok(f) => {
 				let mut buffer = BufReader::new(f);
 				
-				match ImageDecoder::check_sig(&mut buffer) {
+				match Self::check_sig(&mut buffer) {
 					Ok(_) => Ok(ImageDecoder { filepath, buffer }),
-					Err(e) => Err(DecoderError::new( e.to_string()))
+					Err(e) => Err(DecoderError::new(e.to_string()))
 				}
 			},
 			Err(e) => Err(DecoderError::new(e.to_string()))
