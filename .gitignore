@@ -1,4 +1,6 @@
+/old
+/src/image.rs
+/tests/sample_commented.txt
+
 /target
 Cargo.lock
-
-/tests/sample_commented.txt

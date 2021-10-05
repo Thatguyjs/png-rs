@@ -1,35 +1,17 @@
 #[path="../src/lib.rs"]
 mod png;
-use png::*;
+use png::decoder::*;
 
 
-fn main() -> Result<(), std::io::Error> {
-	let mut image = Image::open("tests/sample.png")?;
-	
-	match image.read_sig() {
-		Ok(_) => {},
-		Err(e) => { panic!("Error reading image signature: {}", e); }
-	}
+fn main() -> Result<(), DecoderError> {
+	let mut decoder = ImageDecoder::open("tests/sample.png")?;
 
-	loop {
-		match image.read_chunk() {
-			Ok(c) => {
-				println!("Length: {}\nType: {}\nData: {:?}\nCRC: {:?}\n", c.length, std::str::from_utf8(&c.ch_type).unwrap(), &c.data, c.crc);
-
-				// Ending chunk
-				if &c.ch_type == b"IEND" {
-					break;
-				}
-			},
-			Err(e) => {
-				println!("Error reading chunk: {}", e);
-				break;
-			}
+	for chunk in decoder.chunks() {
+		match &chunk {
+			Ok(c) => { println!("Got chunk: {:?}", c); },
+			Err(e) => { println!("Got error: {}", e); }
 		}
 	}
 
-	println!("Info: {:?}", image.info);
-	println!("Time: {:?}", image.time);
-	println!("Keywords: {:?}", image.keywords);
 	Ok(())
 }
