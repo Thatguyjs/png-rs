@@ -2,14 +2,12 @@
 
 use crate::chunk::*;
 
-// use std::fs::File;
+use std::fs::File;
 use std::io::BufWriter;
 
 
 pub trait Pixel {
-	type Dest: std::io::Write;
-
-	fn write_to(buffer: &mut BufWriter<Self::Dest>);
+	fn write_to(&self, stream: &mut DataStream);
 }
 
 
@@ -49,7 +47,27 @@ impl<T: Pixel> ImageData<T> {
 	}
 }
 
-
 pub fn is_data_chunk(chunk: &Chunk) -> bool {
 	&chunk.ch_type == b"IDAT"
+}
+
+
+pub struct DataStream {
+	pub encode_info: Chunk,
+	stream: BufWriter<std::fs::File>
+}
+
+impl DataStream {
+	pub fn open(filepath: &str) -> Result<Self, std::io::Error> {
+		let file = File::open(filepath)?;
+
+		Ok(DataStream {
+			encode_info: Chunk::empty(),
+			stream: BufWriter::new(file)
+		})
+	}
+
+	pub fn write(&mut self, data: &[u8]) {
+		// TODO
+	}
 }

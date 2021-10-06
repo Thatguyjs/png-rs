@@ -1,13 +1,11 @@
-use png_rs::{decoder::*, data::{ImageData, is_data_chunk}};
+use png_rs::{decoder::*, data::*};
 
 
 struct RGB(u8, u8, u8);
 
 impl png_rs::data::Pixel for RGB {
-	type Dest = std::fs::File;
-
-	fn write_to(buffer: &mut std::io::BufWriter<Self::Dest>) {
-
+	fn write_to(&self, stream: &mut DataStream) {
+		stream.write(&[self.0, self.1, self.2]);
 	}
 }
 
