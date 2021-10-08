@@ -11,9 +11,37 @@ pub enum ChunkLocation {
 
 
 #[derive(Debug, Clone)]
+pub struct ChunkProperties {
+	pub ancillary: bool,
+	pub private: bool,
+	pub reserved: bool,
+	pub safe_to_copy: bool
+}
+
+impl ChunkProperties {
+	pub fn new() -> Self {
+		ChunkProperties {
+			ancillary: true,
+			private: false,
+			reserved: false,
+			safe_to_copy: false
+		}
+	}
+
+	pub fn parse_type(ch_type: &[u8; 4], props: &mut ChunkProperties) {
+		props.ancillary = (ch_type[0] & 32) != 0;
+		props.private = (ch_type[1] & 32) != 0;
+		props.reserved = (ch_type[2] & 32) != 0;
+		props.safe_to_copy = (ch_type[3] & 32) != 0;
+	}
+}
+
+
+#[derive(Debug, Clone)]
 pub struct Chunk {
 	pub length: u32,
 	pub ch_type: [u8; 4],
+	pub properties: ChunkProperties,
 	pub data: Vec<u8>,
 	pub crc: [u8; 4],
 	pub location: ChunkLocation
@@ -24,6 +52,7 @@ impl Chunk {
 		Chunk {
 			length,
 			ch_type,
+			properties: ChunkProperties::new(),
 			data,
 			crc,
 			location: Chunk::get_location(&ch_type)
@@ -34,6 +63,7 @@ impl Chunk {
 		Chunk {
 			length: 0,
 			ch_type: [0; 4],
+			properties: ChunkProperties::new(),
 			data: vec![],
 			crc: [0; 4],
 			location: ChunkLocation::Unknown
@@ -56,7 +86,7 @@ impl Chunk {
 		}
 
 		match buffer.read_exact(&mut chunk.ch_type) {
-			Ok(_) => {},
+			Ok(_) => { ChunkProperties::parse_type(&chunk.ch_type, &mut chunk.properties); },
 			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk type: {}", e)))
 		}
 
