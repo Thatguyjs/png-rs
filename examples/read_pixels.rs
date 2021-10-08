@@ -1,4 +1,4 @@
-use png_rs::{decoder::*, data::*};
+use png_rs::{data::*, decoder::*, image::*};
 
 
 struct RGB(u8, u8, u8);
@@ -17,8 +17,14 @@ fn main() -> Result<(), DecoderError> {
 	for chunk in decoder.chunks() {
 		match &chunk {
 			Ok(c) => {
+				if is_header_chunk(c) {
+					let info = ImageInfo::from_info("tests/sample.png", c).unwrap();
+
+					println!("{:?}", info);
+					data.add_info(info);
+				}
+
 				if is_data_chunk(c) {
-					println!("Data chunk: {:?}", c);
 					data.add_data(c).unwrap();
 				}
 			},

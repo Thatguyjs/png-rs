@@ -1,6 +1,7 @@
 // Provide structs & functions for image data collection / manipulation
 
 use crate::chunk::*;
+use crate::image::ImageInfo;
 
 use std::fs::File;
 use std::io::BufWriter;
@@ -11,29 +12,29 @@ pub trait Pixel {
 }
 
 
-pub struct ImageData<T: Pixel> {
-	pub data_info: Chunk,
+pub struct ImageData<'a, T: Pixel> {
+	pub info: ImageInfo<'a>,
 	pixels: Vec<T>
 }
 
-impl<T: Pixel> ImageData<T> {
+impl<'a, T: Pixel> ImageData<'a, T> {
 	pub fn empty() -> Self {
 		ImageData {
-			data_info: Chunk::empty(),
+			info: ImageInfo::empty(),
 			pixels: vec![]
 		}
 	}
 
-	pub fn from_info(data_info: Chunk) -> Self {
+	pub fn from_info(info: ImageInfo<'a>) -> Self {
 		ImageData {
-			data_info,
+			info,
 			pixels: vec![]
 		}
 	}
 
 
-	pub fn add_info(&mut self, info_chunk: Chunk) {
-		self.data_info = info_chunk;
+	pub fn add_info(&mut self, info: ImageInfo<'a>) {
+		self.info = info;
 	}
 
 	pub fn add_data(&mut self, data_chunk: &Chunk) -> Result<(), ChunkError> {
@@ -67,7 +68,7 @@ impl DataStream {
 		})
 	}
 
-	pub fn write(&mut self, data: &[u8]) {
+	pub fn write(&mut self, _data: &[u8]) {
 		// TODO
 	}
 }
