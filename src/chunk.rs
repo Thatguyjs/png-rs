@@ -1,3 +1,5 @@
+use crc::Crc;
+
 use std::io::{BufReader, Read};
 use std::fs::File;
 
@@ -85,27 +87,46 @@ impl Chunk {
 			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk length: {}", e)))
 		}
 
-		match buffer.read_exact(&mut chunk.ch_type) {
-			Ok(_) => { ChunkProperties::parse_type(&chunk.ch_type, &mut chunk.properties); },
+		let mut crc_buf = vec![0u8; (chunk.length + 4) as usize];
+
+		match buffer.read_exact(&mut crc_buf[0..4]) {
+			Ok(_) => {
+				chunk.ch_type[0] = crc_buf[0];
+				chunk.ch_type[1] = crc_buf[1];
+				chunk.ch_type[2] = crc_buf[2];
+				chunk.ch_type[3] = crc_buf[3];
+				ChunkProperties::parse_type(&chunk.ch_type, &mut chunk.properties);
+			},
 			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk type: {}", e)))
 		}
 
-		if chunk.length > 0 {
-			chunk.data = vec![0; chunk.length as usize];
+		let crc_value: [u8; 4];
 
-			match buffer.read_exact(&mut chunk.data) {
-				Ok(_) => {},
-				Err(e) => return Err(ChunkError::new(format!("Failed to read chunk data: {}", e)))
-			}
+		match buffer.read_exact(&mut crc_buf[4..]) {
+			Ok(_) => {
+				crc_value = Self::generate_crc(&crc_buf);
+				chunk.data = crc_buf[4..].into(); // TODO: Try to make this a no-copy operation
+			},
+			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk data: {}", e)))
 		}
 
 		match buffer.read_exact(&mut chunk.crc) {
-			Ok(_) => {},
+			Ok(_) => {
+				if crc_value != chunk.crc {
+					println!("Calculated CRC: {:?}, original CRC: {:?}", crc_value, chunk.crc);
+					return Err(ChunkError::new("Chunk data may be corrupted".into()));
+				}
+			},
 			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk CRC: {}", e)))
 		}
 
 		chunk.location = Chunk::get_location(&chunk.ch_type);
 		Ok(chunk)
+	}
+
+	fn generate_crc(data: &[u8]) -> [u8; 4] {
+		let algo = Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
+		algo.checksum(data).to_be_bytes()
 	}
 }
 
