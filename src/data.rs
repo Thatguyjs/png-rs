@@ -3,8 +3,10 @@
 use crate::chunk::*;
 use crate::image::ImageInfo;
 
+use flate2::read::ZlibDecoder;
+
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, Read};
 
 
 pub trait Pixel {
@@ -12,12 +14,12 @@ pub trait Pixel {
 }
 
 
-pub struct ImageData<'a, T: Pixel> {
+pub struct ImageData<'a> {
 	pub info: ImageInfo<'a>,
-	pixels: Vec<T>
+	pixels: Vec<u8>
 }
 
-impl<'a, T: Pixel> ImageData<'a, T> {
+impl<'a> ImageData<'a> {
 	pub fn empty() -> Self {
 		ImageData {
 			info: ImageInfo::empty(),
@@ -39,10 +41,22 @@ impl<'a, T: Pixel> ImageData<'a, T> {
 
 	pub fn add_data(&mut self, data_chunk: &Chunk) -> Result<(), ChunkError> {
 		if !is_data_chunk(data_chunk) {
-			ChunkError::new("Not a data chunk".into());
+			return Err(ChunkError::new("Not a data chunk".into()));
 		}
 
-		// TODO: Add chunk data
+		self.decode_data(data_chunk)
+	}
+
+
+	// Dedode data and add it to the pixel array
+	fn decode_data(&mut self, data_chunk: &Chunk) -> Result<(), ChunkError> {
+		let mut decoder = ZlibDecoder::new(data_chunk.data.as_slice());
+		let mut decoded = Vec::new();
+
+		match decoder.read_to_end(&mut decoded) {
+			Ok(_) => { self.pixels.append(&mut decoded); },
+			Err(e) => return Err(ChunkError::new(format!("Couldn't decompress pixel data: {}", e).into()))
+		}
 
 		Ok(())
 	}
