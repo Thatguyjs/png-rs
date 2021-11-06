@@ -1,6 +1,6 @@
 use crc::Crc;
 
-use std::io::{BufReader, Read};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::fs::File;
 
 
@@ -30,7 +30,7 @@ impl ChunkProperties {
 		}
 	}
 
-	pub fn parse_type(ch_type: &[u8; 4], props: &mut ChunkProperties) {
+	pub fn from_type(ch_type: &[u8; 4], props: &mut ChunkProperties) {
 		props.ancillary = (ch_type[0] & 32) != 0;
 		props.private = (ch_type[1] & 32) != 0;
 		props.reserved = (ch_type[2] & 32) != 0;
@@ -78,6 +78,7 @@ impl Chunk {
 		ChunkLocation::Unknown
 	}
 
+	// TODO: Redo this, it's pretty messy
 	pub fn next_from_buffer(buffer: &mut BufReader<File>) -> Result<Chunk, ChunkError> {
 		let mut chunk = Chunk::empty();
 		let mut length_buf = [0u8; 4];
@@ -95,7 +96,7 @@ impl Chunk {
 				chunk.ch_type[1] = crc_buf[1];
 				chunk.ch_type[2] = crc_buf[2];
 				chunk.ch_type[3] = crc_buf[3];
-				ChunkProperties::parse_type(&chunk.ch_type, &mut chunk.properties);
+				ChunkProperties::from_type(&chunk.ch_type, &mut chunk.properties);
 			},
 			Err(e) => return Err(ChunkError::new(format!("Failed to read chunk type: {}", e)))
 		}
@@ -122,6 +123,15 @@ impl Chunk {
 
 		chunk.location = Chunk::get_location(&chunk.ch_type);
 		Ok(chunk)
+	}
+
+	pub fn write_to<T: Write>(&self, buffer: &mut BufWriter<T>) -> Result<(), std::io::Error> {
+		buffer.write(&self.length.to_be_bytes())?;
+		buffer.write(&self.ch_type)?;
+		buffer.write(&self.data)?;
+		buffer.write(&self.crc)?;
+
+		Ok(())
 	}
 
 	fn generate_crc(data: &[u8]) -> [u8; 4] {
